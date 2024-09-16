@@ -8,6 +8,7 @@ import logging
 from bs4 import BeautifulSoup
 from datetime import datetime
 import json
+import hashlib
 
 load_dotenv()
 
@@ -35,42 +36,40 @@ class SAPOTCSpider(scrapy.Spider):
             "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
         self.processed.add(response.url)
-        print(response.url, response.meta.get("depth"))
-        if response.meta.get("depth", 0) == 0:
-            is_relevant = True
-        else:
-            is_relevant = True
 
-        if is_relevant:
-            directory = "files_crawled"
-            # Ensure the directory exists before writing the file
-            if not os.path.exists(directory):
-                os.makedirs(directory)
+        cleaned_url = (
+            response.url.replace("https://", "").replace(".com", "").replace("/", "-")
+        )
 
-            file_name = f"{directory}/{response.url.split('/')[-2]}.json"
-            file_data = {
-                "metadata": metadata,
-                "content": cleaned_page,
-            }
-            # Save the file as JSON
-            with open(file_name, "w") as json_file:
-                json.dump(file_data, json_file, indent=4)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        depth = response.meta.get("depth", 0)
 
-            for next_page in response.css("a::attr(href)").getall():
-                if next_page is not None:
-                    yield response.follow(next_page, callback=self.parse)
+        directory = "files_crawled"
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        file_name = f"{directory}/{cleaned_url}_depth{depth}_{timestamp}.json"
+
+        file_data = {
+            "metadata": metadata,
+            "content": cleaned_page,
+        }
+
+        with open(file_name, "w") as json_file:
+            json.dump(file_data, json_file, indent=4)
+
+        for next_page in response.css("a::attr(href)").getall():
+            if next_page is not None:
+                yield response.follow(next_page, callback=self.parse)
 
     def extract_text(self, html_content):
         """Extracts visible text from the HTML content using BeautifulSoup."""
         soup = BeautifulSoup(html_content, "html.parser")
 
-        # Remove script and style elements
         for script_or_style in soup(["script", "style"]):
             script_or_style.decompose()
 
-        # Extract visible text
         text = soup.get_text(separator=" ")
 
-        # Clean up the text (remove extra spaces, newlines, etc.)
         cleaned_text = " ".join(text.split())
         return cleaned_text
