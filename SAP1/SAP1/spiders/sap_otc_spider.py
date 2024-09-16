@@ -20,7 +20,10 @@ class SAPOTCSpider(scrapy.Spider):
         self.custom_depth = int(depth)
         self.processed = set()
         self.pages_crawled = 0
-        self.total_pages = 1
+        self.total_pages = len(self.start_urls)
+        self.counted = set()
+        for url in self.start_urls:
+            self.counted.add(url)
         self.pbar = tqdm(
             total=self.total_pages,
             desc="Crawling progress",
@@ -34,24 +37,32 @@ class SAPOTCSpider(scrapy.Spider):
 
     def parse(self, response):
         """Main parsing method that processes each page and follows links."""
+        if (response is None) or (response.body is None):
+            self.pages_crawled += 1
+            return
+        if (response.url in self.processed) or (
+            response.meta.get("depth", 0) >= self.custom_depth
+        ):
+            return
 
         self.pages_crawled += 1
         self.log_progress()
 
         page_content = response.body
         cleaned_page = self.extract_text(page_content)
-
-        if (response.url in self.processed) or (
-            response.meta.get("depth", 0) >= self.custom_depth
-        ):
-            return
         self.processed.add(response.url)
 
         self.save_page(response, cleaned_page)
 
         for next_page in response.css("a::attr(href)").getall():
-            if next_page is not None:
-
+            if (
+                next_page is not None
+                # and next_page.startswith("http")
+                and next_page not in self.counted
+                and next_page not in self.processed
+                and response.meta.get("depth", 0) < self.custom_depth - 1
+            ):
+                self.counted.add(next_page)
                 self.total_pages += 1
                 self.pbar.total = self.total_pages
                 self.pbar.refresh()
@@ -81,7 +92,8 @@ class SAPOTCSpider(scrapy.Spider):
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        file_name = f"{directory}/{cleaned_url}_depth{depth}_{timestamp}.json"
+        # file_name = f"{directory}/{cleaned_url}_depth{depth}_{timestamp}.json"
+        file_name = f"{directory}/{cleaned_url}_depth{depth}.json"
         metadata = {
             "url": response.url,
             "depth": depth,
