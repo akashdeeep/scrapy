@@ -1,14 +1,10 @@
 from pathlib import Path
 import scrapy
-import openai
 import os
 from dotenv import load_dotenv
-from conf import llm
-import logging
 from bs4 import BeautifulSoup
 from datetime import datetime
 import json
-import hashlib
 
 load_dotenv()
 
@@ -16,19 +12,20 @@ load_dotenv()
 class SAPOTCSpider(scrapy.Spider):
     name = "sap_otc_spider"
 
-    start_urls = [
-        "https://community.sap.com/t5/enterprise-resource-planning-blogs-by-members/sap-order-to-cash-process-sd/ba-p/13551270",
-        "https://techconcepthub.com/otc-process-in-sap/",
-    ]
-
-    processed = set()
+    def __init__(self, start_urls=None, depth=2, *args, **kwargs):
+        super(SAPOTCSpider, self).__init__(*args, **kwargs)
+        if start_urls:
+            self.start_urls = start_urls.split(",")  # Split the comma-separated URLs
+        self.custom_depth = int(depth)
+        self.processed = set()
 
     def parse(self, response):
-
         page_content = response.body
         cleaned_page = self.extract_text(page_content)
 
-        if (response.url in self.processed) or (response.meta.get("depth", 0) >= 2):
+        if (response.url in self.processed) or (
+            response.meta.get("depth", 0) >= self.custom_depth
+        ):
             return
         metadata = {
             "url": response.url,
