@@ -1,4 +1,4 @@
-# Web Scraper
+# Web Crawler
 
 This repository contains a Scrapy-based web scraper to crawl SAP Order-to-Cash process-related content from the web, extract visible text, and store the data in JSON format for further processing.
 
