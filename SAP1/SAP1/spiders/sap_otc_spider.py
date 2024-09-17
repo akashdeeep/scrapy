@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import json
 from tqdm import tqdm
+import requests
+from urllib.parse import urlparse
 
 load_dotenv()
 
@@ -43,6 +45,7 @@ class SAPOTCSpider(scrapy.Spider):
         if (response.url in self.processed) or (
             response.meta.get("depth", 0) >= self.custom_depth
         ):
+            self.pages_crawled += 1
             return
 
         self.pages_crawled += 1
@@ -51,18 +54,22 @@ class SAPOTCSpider(scrapy.Spider):
         page_content = response.body
         cleaned_page = self.extract_text(page_content)
         self.processed.add(response.url)
+        # if len(self.processed) == 452:
+        #     print(self.counted - self.processed)
 
         self.save_page(response, cleaned_page)
 
         for next_page in response.css("a::attr(href)").getall():
+            real_next_page = response.urljoin(next_page)
+
             if (
-                next_page is not None
-                # and next_page.startswith("http")
-                and next_page not in self.counted
-                and next_page not in self.processed
+                real_next_page is not None
+                and real_next_page.startswith("http")
+                and real_next_page not in self.counted
+                and real_next_page not in self.processed
                 and response.meta.get("depth", 0) < self.custom_depth - 1
             ):
-                self.counted.add(next_page)
+                self.counted.add(real_next_page)
                 self.total_pages += 1
                 self.pbar.total = self.total_pages
                 self.pbar.refresh()
@@ -92,8 +99,7 @@ class SAPOTCSpider(scrapy.Spider):
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        # file_name = f"{directory}/{cleaned_url}_depth{depth}_{timestamp}.json"
-        file_name = f"{directory}/{cleaned_url}_depth{depth}.json"
+        file_name = f"{directory}/{cleaned_url}.json"
         metadata = {
             "url": response.url,
             "depth": depth,
