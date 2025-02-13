@@ -2,4 +2,4 @@ scrapy
 beautifulsoup4
 tqdm
 requests
-python-dotenvx`
+python-dotenv
