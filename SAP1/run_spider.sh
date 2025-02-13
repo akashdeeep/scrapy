@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Default values
-DEFAULT_START_URLS="https://community.sap.com/t5/enterprise-resource-planning-blogs-by-members/sap-order-to-cash-process-sd/ba-p/13551270,https://techconcepthub.com/otc-process-in-sap/"
-DEFAULT_DEPTH=2
+DEFAULT_START_URLS="https://businessprocessxperts.com/order-to-cash-o2c-solutions-sap-expert/"
+DEFAULT_DEPTH=3
 
 # Accept custom start_urls and depth from command line if provided
 START_URLS=${1:-$DEFAULT_START_URLS}

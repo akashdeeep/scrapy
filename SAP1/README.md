@@ -146,8 +146,6 @@ sap-otc-scraper/
 
 ## License
 
-This project is licensed under the MIT License.
-
 ---
 
 Feel free to modify and adapt this `README.md` file according to your specific needs!
